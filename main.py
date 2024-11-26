@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
-import requests, time
+from dotenv import load_dotenv
+import requests, time, os
 
 
 def get_html(dept, course_num):
@@ -21,7 +22,7 @@ def get_course_info(soup):
     for section in section_info:
         section_number = section.find("div", class_="section-id-container").find("span", class_="section-id").text.strip()
         instructor_name_tag = section.find("div", class_="section-instructors-container").find("span", class_="section-instructor")
-        instructor_name = instructor_name_tag.text.strip()
+        instructor_name = instructor_name_tag.text.strip() if instructor_name_tag else "No instructor listed"
         total_seats = section.find("span", class_="total-seats-count").text.strip()
         open_seats = section.find("span", class_="open-seats-count").text.strip()
         waitlist_count = section.find("span", class_="waitlist-count").text.strip()
@@ -40,7 +41,8 @@ def get_course_info(soup):
 
 
 def post_to_discord(message, is_course_msg=True):
-    WEBHOOK_URL = "TODO"
+    load_dotenv()
+    WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
     if is_course_msg:
         course_data = format_course_data(message)
@@ -87,14 +89,23 @@ def get_desired_course():
 
     return dept, course_num
 
+
 def get_target_sections():
     target_sections = input("Enter the target sections (e.g. 0101, 0201, 0301): ").split(",")
 
     return target_sections
 
+
+def send_initial_message(dept, course_num, target_sections):
+    initial_message = f"Program started. Checking for open seats in {dept}{course_num} sections: {', '.join(target_sections)} every 15 minutes. A message will be sent only if monitored sections have open seats."
+    post_to_discord(initial_message, is_course_msg=False)
+
+
 def main():
     dept, course_num = get_desired_course()
     target_sections = get_target_sections()
+
+    send_initial_message(dept, course_num, target_sections)
 
     while True:
         html = get_html(dept, course_num)
