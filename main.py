@@ -22,7 +22,7 @@ def get_course_info(soup):
     for section in section_info:
         section_number = section.find("div", class_="section-id-container").find("span", class_="section-id").text.strip()
         instructor_name_tag = section.find("div", class_="section-instructors-container").find("span", class_="section-instructor")
-        instructor_name = instructor_name_tag.text.strip() if instructor_name_tag else "No instructor listed"
+        instructor_name = instructor_name_tag.text.strip()
         total_seats = section.find("span", class_="total-seats-count").text.strip()
         open_seats = section.find("span", class_="open-seats-count").text.strip()
         waitlist_count = section.find("span", class_="waitlist-count").text.strip()
@@ -97,7 +97,7 @@ def get_target_sections():
 
 
 def send_initial_message(dept, course_num, target_sections):
-    initial_message = f"Program started. Checking for open seats in {dept}{course_num} sections: {', '.join(target_sections)} every 15 minutes. A message will be sent only if monitored sections have open seats."
+    initial_message = f"Program started. Checking for open seats every 15 minutes in {dept}{course_num} - sections: {', '.join(target_sections)}.\nA message will be sent only if the monitored sections have open seats."
     post_to_discord(initial_message, is_course_msg=False)
 
 
@@ -109,6 +109,9 @@ def main():
 
     while True:
         html = get_html(dept, course_num)
+
+        if (html == -1): continue
+
         soup = BeautifulSoup(html, "html.parser")
         course_data = get_course_info(soup)
 
@@ -117,8 +120,12 @@ def main():
         if sections_with_open_seats:
             post_to_discord(sections_with_open_seats)
 
-        time.sleep(60 * 15) # 15 minutes
+        time.sleep(60 * 10) # 10 minutes
 
 
 if __name__ == "__main__":
-    main()
+    while True:
+        try:
+            main()
+        except Exception as e:
+            continue
